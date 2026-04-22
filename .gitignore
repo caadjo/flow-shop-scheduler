@@ -1,4 +1,4 @@
-# Build directory
+#build
 build/
 
 # IDEs and Editors
@@ -10,6 +10,6 @@ build/
 # OS generated files
 .DS_Store
 
-# Data (Optional: if the instances are too big, ignore them, but track the folder)
+# Data 
 # data/instances/*
 !data/instances/.gitkeep

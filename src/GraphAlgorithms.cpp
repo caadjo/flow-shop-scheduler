@@ -8,24 +8,18 @@ std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
     std::vector<int> inDegree(n, 0);
     const auto& vertices = g.getVertices();
 
-    // conta o grau de entrada
     for (int i = 0; i < n; ++i) {
         for (int neighbor : vertices[i].adj) {
             inDegree[neighbor]++;
         }
     }
 
-    // fila para vértices sem dependências
     std::queue<int> q;
     for (int i = 0; i < n; ++i) {
-        if (inDegree[i] == 0) {
-            q.push(i);
-        }
+        if (inDegree[i] == 0) q.push(i);
     }
 
     std::vector<int> topoOrder;
-
-   
     while (!q.empty()) {
         int u = q.front();
         q.pop();
@@ -33,16 +27,13 @@ std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
 
         for (int v : vertices[u].adj) {
             inDegree[v]--;
-            if (inDegree[v] == 0) {
-                q.push(v);
-            }
+            if (inDegree[v] == 0) q.push(v);
         }
     }
 
     if (topoOrder.size() != static_cast<size_t>(n)) {
         throw std::runtime_error("Erro: Grafo contem ciclo.");
     }
-
     return topoOrder;
 }
 
@@ -52,12 +43,8 @@ LongestPathResult GraphAlgorithms::calculateLongestPath(const Graph& g, const st
     std::vector<int> predecessor(n, -1);
     const auto& vertices = g.getVertices();
 
-  
-    for (int i = 0; i < n; ++i) {
-        dist[i] = vertices[i].weight;
-    }
+    for (int i = 0; i < n; ++i) dist[i] = vertices[i].weight;
 
- 
     for (int u : topoOrder) {
         for (int v : vertices[u].adj) {
             if (dist[u] + vertices[v].weight > dist[v]) {
@@ -67,7 +54,6 @@ LongestPathResult GraphAlgorithms::calculateLongestPath(const Graph& g, const st
         }
     }
 
-    // fim do caminho
     int maxDist = -1;
     int endNode = -1;
     for (int i = 0; i < n; ++i) {
@@ -77,12 +63,11 @@ LongestPathResult GraphAlgorithms::calculateLongestPath(const Graph& g, const st
         }
     }
 
-    // reconstroi
     std::vector<int> path;
     for (int at = endNode; at != -1; at = predecessor[at]) {
         path.push_back(at);
     }
     std::reverse(path.begin(), path.end());
 
-    return {maxDist, path};
+    return {maxDist, path, dist, predecessor};
 }

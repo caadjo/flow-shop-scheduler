@@ -1,32 +1,32 @@
 #include <iostream>
-#include "Graph.hpp"
+#include <filesystem>
+#include <numeric>
+#include "InstanceParser.hpp"
+#include "FlowShopModeler.hpp"
+#include "GraphAlgorithms.hpp"
+
+namespace fs = std::filesystem;
 
 int main() {
-    std::cout << "--- Flow Shop Scheduler ---" << std::endl;
+    std::string folder = "data/instances";
+    
+    for (const auto& entry : fs::directory_iterator(folder)) {
+        if (entry.is_regular_file()) {
+            try {
+                FlowShopInstance inst = InstanceParser::parse(entry.path().string());
+                
+                std::vector<int> seq(inst.numJobs);
+                std::iota(seq.begin(), seq.end(), 0);
 
-    try {
-     
-        Graph g(3);
+                Graph g = FlowShopModeler::buildGraph(inst, seq);
+                std::vector<int> topo = GraphAlgorithms::topologicalSort(g);
+                LongestPathResult res = GraphAlgorithms::calculateLongestPath(g, topo);
 
-       
-        g.setVertexWeight(0, 10);
-        g.setVertexWeight(1, 20);
-        g.setVertexWeight(2, 30);
-
-        g.addEdge(0, 1);
-        g.addEdge(1, 2);
-
-        std::cout << "Grafo criado com sucesso!" << std::endl;
-        std::cout << "Numero de vertices: " << g.getNumVertices() << std::endl;
-        
-        const auto& vertices = g.getVertices();
-        for (const auto& v : vertices) {
-            std::cout << "Vertice " << v.id << " | Peso: " << v.weight 
-                      << " | Arestas de saida: " << v.adj.size() << std::endl;
+                std::cout << "Instancia: " << entry.path().filename() << " | Makespan: " << res.maxLength << "\n";
+            } catch (const std::exception& e) {
+                std::cerr << "Erro no arquivo " << entry.path().filename() << ": " << e.what() << "\n";
+            }
         }
-    } catch (const std::exception& e) {
-        std::cerr << "Erro: " << e.what() << std::endl;
     }
-
     return 0;
 }

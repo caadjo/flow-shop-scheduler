@@ -1,19 +1,21 @@
-#include <iostream>
-#include <filesystem>
-#include <numeric>
-#include <vector>
 #include <algorithm>
+#include <filesystem>
+#include <iostream>
 #include <string>
-#include "InstanceParser.hpp"
+#include <vector>
 #include "FlowShopModeler.hpp"
+#include "GraphAlgorithms.hpp"
+#include "InstanceParser.hpp"
 
 namespace fs = std::filesystem;
 
 void printUsage(const char* programName) {
     std::cout << "Usage:\n"
-              << "  " << programName << "              # run all instances in data/instances\n"
-              << "  " << programName << " ta001        # run one instance by name\n"
-              << "  " << programName << " path/to/file # run one instance by path\n";
+              << "  " << programName << "                    # run all instances in data/instances\n"
+              << "  " << programName << " ta001              # run one instance by name\n"
+              << "  " << programName << " path/to/file       # run one instance by path\n"
+              << "  " << programName << " --details ta001    # show DAG traversal and longest path\n"
+              << "  " << programName << " --fixed-graph      # run the fixed graph from the PDF\n";
 }
 
 void printSequence(const std::vector<int>& sequence) {
@@ -23,6 +25,44 @@ void printSequence(const std::vector<int>& sequence) {
             std::cout << ' ';
         }
     }
+}
+
+void printMachineSequences(const std::vector<std::vector<int>>& machineSequences) {
+    for (size_t machine = 0; machine < machineSequences.size(); ++machine) {
+        std::cout << "M" << machine + 1 << ":[";
+        printSequence(machineSequences[machine]);
+        std::cout << "]";
+        if (machine + 1 < machineSequences.size()) {
+            std::cout << ' ';
+        }
+    }
+}
+
+void printVectorOneBased(const std::vector<int>& values) {
+    for (size_t i = 0; i < values.size(); ++i) {
+        std::cout << values[i] + 1;
+        if (i + 1 < values.size()) {
+            std::cout << ' ';
+        }
+    }
+}
+
+void printVertexLabels(const std::vector<int>& vertices, const std::vector<int>& labels) {
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        std::cout << labels[vertices[i]];
+        if (i + 1 < vertices.size()) {
+            std::cout << ' ';
+        }
+    }
+}
+
+std::vector<int> reconstructPathTo(int endVertex, const LongestPathResult& result) {
+    std::vector<int> path;
+    for (int at = endVertex; at != -1; at = result.predecessors[at]) {
+        path.push_back(at);
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
 }
 
 std::vector<std::string> listInstanceFiles(const std::string& folder) {
@@ -56,14 +96,100 @@ std::string resolveInstancePath(const std::string& instanceArg) {
     return "";
 }
 
-void runFlowShopInstance(const std::string& filepath) {
+Graph buildFixedGraphFromPdf(std::vector<int>& labels) {
+    labels = {
+        4, 3, 5, 15, 6,
+        10, 1, 11, 14, 13,
+        7, 8, 2, 12, 9
+    };
+
+    Graph graph(static_cast<int>(labels.size()));
+    for (int i = 0; i < static_cast<int>(labels.size()); ++i) {
+        graph.setVertexWeight(i, labels[i]);
+    }
+
+    // Disposicao usada: tres linhas do desenho do PDF.
+    // Linha 1: 4 -> 3 -> 5 -> 15 -> 6
+    // Linha 2: 10 -> 1 -> 11 -> 14 -> 13
+    // Linha 3: 7 -> 8 -> 2 -> 12 -> 9
+    const std::vector<std::pair<int, int>> edges = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 4},
+        {5, 6}, {6, 7}, {7, 8}, {8, 9},
+        {10, 11}, {11, 12}, {12, 13}, {13, 14},
+        {5, 0}, {10, 5}, {10, 6}, {11, 6},
+        {11, 7}, {12, 7}, {12, 8}, {13, 8},
+        {13, 9}, {14, 9}
+    };
+
+    for (const auto& edge : edges) {
+        graph.addEdge(edge.first, edge.second);
+    }
+
+    return graph;
+}
+
+void runFixedGraphTest() {
+    std::vector<int> labels;
+    Graph graph = buildFixedGraphFromPdf(labels);
+    std::vector<int> topoOrder = GraphAlgorithms::topologicalSort(graph);
+    LongestPathResult result = GraphAlgorithms::calculateLongestPath(graph, topoOrder);
+
+    const std::vector<int> lineEnds = {4, 9, 14};
+
+    std::cout << "Fixed graph from PDF\n";
+    std::cout << "Vertex labels are also the vertex weights.\n";
+    std::cout << "TopologicalOrder: ";
+    printVertexLabels(topoOrder, labels);
+    std::cout << "\n\n";
+
+    std::cout << "1. Caminho maximo de um elemento minimal para um elemento maximal\n";
+    std::cout << "Length: " << result.maxLength << "\n";
+    std::cout << "Path: ";
+    printVertexLabels(result.path, labels);
+    std::cout << "\n\n";
+
+    std::cout << "2. Caminho maximo de um elemento minimal para cada elemento no final de cada linha\n";
+    for (int endVertex : lineEnds) {
+        std::vector<int> path = reconstructPathTo(endVertex, result);
+        std::cout << "End " << labels[endVertex]
+                  << " | Length: " << result.distances[endVertex]
+                  << " | Path: ";
+        printVertexLabels(path, labels);
+        std::cout << '\n';
+    }
+}
+
+void printDetailedDagResult(const std::string& filepath) {
     FlowShopInstance inst = InstanceParser::parse(filepath);
 
-    std::vector<int> naturalSequence(inst.numJobs);
-    std::iota(naturalSequence.begin(), naturalSequence.end(), 0);
+    std::vector<std::vector<int>> naturalSequences = FlowShopModeler::buildNaturalMachineSequences(inst);
+    FlowShopEvaluation result = FlowShopModeler::improveByAdjacentSwaps(inst, naturalSequences);
+    Graph graph = FlowShopModeler::buildGraph(inst, result.machineSequences);
+    std::vector<int> topoOrder = GraphAlgorithms::topologicalSort(graph);
+    LongestPathResult longestPath = GraphAlgorithms::calculateLongestPath(graph, topoOrder);
 
-    FlowShopEvaluation initial = FlowShopModeler::evaluateSequence(inst, naturalSequence);
-    FlowShopEvaluation result = FlowShopModeler::improveByAdjacentSwaps(inst, naturalSequence);
+    std::cout << "Problem: Non-Permutation Flow Shop (FSP) with objective flowtime + makespan\n"
+              << "Instance: " << fs::path(filepath).filename().string() << '\n'
+              << "Jobs: " << inst.numJobs << " | Machines: " << inst.numMachines << '\n'
+              << "BestMachineSequences: ";
+    printMachineSequences(result.machineSequences);
+    std::cout << "\nMakespan: " << result.makespan
+              << "\nFlowtime: " << result.flowtime
+              << "\nObjective: " << result.objective
+              << "\nTopologicalOrder: ";
+    printVectorOneBased(topoOrder);
+    std::cout << "\nLongestPathLength: " << longestPath.maxLength
+              << "\nLongestPath: ";
+    printVectorOneBased(longestPath.path);
+    std::cout << '\n';
+}
+
+void runFlowShopInstance(const std::string& filepath, bool printSequences) {
+    FlowShopInstance inst = InstanceParser::parse(filepath);
+
+    std::vector<std::vector<int>> naturalSequences = FlowShopModeler::buildNaturalMachineSequences(inst);
+    FlowShopEvaluation initial = FlowShopModeler::evaluateSequences(inst, naturalSequences);
+    FlowShopEvaluation result = FlowShopModeler::improveByAdjacentSwaps(inst, naturalSequences);
     long long improvement = initial.objective - result.objective;
 
     std::cout << "Instance: " << fs::path(filepath).filename().string()
@@ -71,10 +197,12 @@ void runFlowShopInstance(const std::string& filepath) {
               << " | FinalObjective: " << result.objective
               << " | Improvement: " << improvement
               << " | Makespan: " << result.makespan
-              << " | Flowtime: " << result.flowtime
-              << " | Sequence: ";
+              << " | Flowtime: " << result.flowtime;
 
-    printSequence(result.sequence);
+    if (printSequences) {
+        std::cout << " | MachineSequences: ";
+        printMachineSequences(result.machineSequences);
+    }
     std::cout << '\n';
 }
 
@@ -83,7 +211,7 @@ void runFlowShopInstances() {
 
     for (const auto& filepath : files) {
         try {
-            runFlowShopInstance(filepath);
+            runFlowShopInstance(filepath, false);
         } catch (const std::exception& e) {
             std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
         }
@@ -91,15 +219,48 @@ void runFlowShopInstances() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc > 2) {
+    if (argc > 3) {
         printUsage(argv[0]);
         return 1;
+    }
+
+    if (argc == 3) {
+        std::string option = argv[1];
+        if (option != "--details") {
+            printUsage(argv[0]);
+            return 1;
+        }
+
+        std::string filepath = resolveInstancePath(argv[2]);
+        if (filepath.empty()) {
+            std::cerr << "Instance not found: " << argv[2] << '\n';
+            printUsage(argv[0]);
+            return 1;
+        }
+
+        try {
+            printDetailedDagResult(filepath);
+        } catch (const std::exception& e) {
+            std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
+            return 1;
+        }
+        return 0;
     }
 
     if (argc == 2) {
         std::string arg = argv[1];
         if (arg == "--help" || arg == "-h") {
             printUsage(argv[0]);
+            return 0;
+        }
+
+        if (arg == "--fixed-graph") {
+            try {
+                runFixedGraphTest();
+            } catch (const std::exception& e) {
+                std::cerr << "Error processing fixed graph: " << e.what() << '\n';
+                return 1;
+            }
             return 0;
         }
 
@@ -111,7 +272,7 @@ int main(int argc, char* argv[]) {
         }
 
         try {
-            runFlowShopInstance(filepath);
+            runFlowShopInstance(filepath, true);
         } catch (const std::exception& e) {
             std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
             return 1;

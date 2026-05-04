@@ -7,12 +7,13 @@ struct FlowShopEvaluation {
     int makespan;
     long long flowtime;
     long long objective;
-    std::vector<int> sequence;
+    std::vector<std::vector<int>> machineSequences;
 };
 
 class FlowShopModeler {
 public:
-    static Graph buildGraph(const FlowShopInstance& inst, const std::vector<int>& jobSeq);
-    static FlowShopEvaluation evaluateSequence(const FlowShopInstance& inst, const std::vector<int>& jobSeq);
-    static FlowShopEvaluation improveByAdjacentSwaps(const FlowShopInstance& inst, const std::vector<int>& initialSeq);
+    static std::vector<std::vector<int>> buildNaturalMachineSequences(const FlowShopInstance& inst);
+    static Graph buildGraph(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences);
+    static FlowShopEvaluation evaluateSequences(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences);
+    static FlowShopEvaluation improveByAdjacentSwaps(const FlowShopInstance& inst, const std::vector<std::vector<int>>& initialSequences);
 };

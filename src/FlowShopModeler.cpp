@@ -1,115 +1,159 @@
 #include "FlowShopModeler.hpp"
 #include "GraphAlgorithms.hpp"
 #include <algorithm>
-#include <numeric>
 #include <stdexcept>
 #include <vector>
 
-namespace {
 const int MAX_LOCAL_SEARCH_PASSES = 1;
+
+namespace {
+int operationVertex(int job, int machine, int numberOfMachines) {
+    return (job * numberOfMachines) + machine;
+}
+
+void validateOneMachineSequence(const FlowShopInstance& inst, const std::vector<int>& sequence) {
+    if (static_cast<int>(sequence.size()) != inst.numJobs) {
+        throw std::invalid_argument("Cada maquina deve ter todos os jobs.");
+    }
+
+    std::vector<int> count(inst.numJobs, 0);
+
+    for (int i = 0; i < static_cast<int>(sequence.size()); ++i) {
+        int job = sequence[i];
+        if (job < 0 || job >= inst.numJobs) {
+            throw std::invalid_argument("Sequencia de maquina tem job fora do intervalo.");
+        }
+        count[job]++;
+    }
+
+    for (int job = 0; job < inst.numJobs; ++job) {
+        if (count[job] != 1) {
+            throw std::invalid_argument("Sequencia de maquina nao e uma permutacao valida.");
+        }
+    }
+}
 
 void validateMachineSequences(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences) {
     if (static_cast<int>(machineSequences.size()) != inst.numMachines) {
         throw std::invalid_argument("Deve existir uma sequencia para cada maquina.");
     }
 
-    for (const auto& sequence : machineSequences) {
-        if (static_cast<int>(sequence.size()) != inst.numJobs) {
-            throw std::invalid_argument("Cada sequencia deve conter todos os jobs da instancia.");
-        }
-
-        std::vector<bool> seen(inst.numJobs, false);
-        for (int job : sequence) {
-            if (job < 0 || job >= inst.numJobs) {
-                throw std::invalid_argument("Uma sequencia contem job fora do intervalo da instancia.");
-            }
-            if (seen[job]) {
-                throw std::invalid_argument("Cada sequencia deve ser uma permutacao, sem jobs repetidos.");
-            }
-            seen[job] = true;
-        }
+    for (int machine = 0; machine < inst.numMachines; ++machine) {
+        validateOneMachineSequence(inst, machineSequences[machine]);
     }
 }
 }
 
 std::vector<std::vector<int>> FlowShopModeler::buildNaturalMachineSequences(const FlowShopInstance& inst) {
-    std::vector<int> naturalSequence(inst.numJobs);
-    std::iota(naturalSequence.begin(), naturalSequence.end(), 0);
-    return std::vector<std::vector<int>>(inst.numMachines, naturalSequence);
+    std::vector<std::vector<int>> sequences;
+
+    for (int machine = 0; machine < inst.numMachines; ++machine) {
+        std::vector<int> sequence;
+
+        for (int job = 0; job < inst.numJobs; ++job) {
+            sequence.push_back(job);
+        }
+
+        sequences.push_back(sequence);
+    }
+
+    return sequences;
 }
 
 Graph FlowShopModeler::buildGraph(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences) {
     validateMachineSequences(inst, machineSequences);
 
-    int n = inst.numJobs, m = inst.numMachines;
-    int totalVertices = (n * m) + 2;
-    Graph g(totalVertices);
-    int source = totalVertices - 2, sink = totalVertices - 1;
+    int totalOperations = inst.numJobs * inst.numMachines;
+    int source = totalOperations;
+    int sink = totalOperations + 1;
 
-    for (int j = 0; j < n; ++j) {
-        for (int k = 0; k < m; ++k) {
-            g.setVertexWeight((j * m) + k, inst.processingTimes[j][k]);
-        }
-    }
-    g.setVertexWeight(source, 0);
-    g.setVertexWeight(sink, 0);
+    Graph graph(totalOperations + 2);
 
-    for (int j = 0; j < n; ++j) {
-        for (int k = 0; k < m - 1; ++k) g.addEdge((j * m) + k, (j * m) + k + 1);
-    }
-
-    for (int k = 0; k < m; ++k) {
-        const auto& machineSequence = machineSequences[k];
-        for (size_t i = 0; i + 1 < machineSequence.size(); ++i) {
-            g.addEdge((machineSequence[i] * m) + k, (machineSequence[i + 1] * m) + k);
+    for (int job = 0; job < inst.numJobs; ++job) {
+        for (int machine = 0; machine < inst.numMachines; ++machine) {
+            int vertex = operationVertex(job, machine, inst.numMachines);
+            graph.setVertexWeight(vertex, inst.processingTimes[job][machine]);
         }
     }
 
-    for (int j = 0; j < n; ++j) {
-        g.addEdge(source, (j * m));
-        g.addEdge((j * m) + m - 1, sink);
+    graph.setVertexWeight(source, 0);
+    graph.setVertexWeight(sink, 0);
+
+    // Restricao 1: cada job passa pelas maquinas na ordem 0, 1, 2, ...
+    for (int job = 0; job < inst.numJobs; ++job) {
+        for (int machine = 0; machine + 1 < inst.numMachines; ++machine) {
+            int from = operationVertex(job, machine, inst.numMachines);
+            int to = operationVertex(job, machine + 1, inst.numMachines);
+            graph.addEdge(from, to);
+        }
     }
-    return g;
+
+    // Restricao 2: em cada maquina existe uma ordem propria dos jobs.
+    for (int machine = 0; machine < inst.numMachines; ++machine) {
+        for (int position = 0; position + 1 < inst.numJobs; ++position) {
+            int firstJob = machineSequences[machine][position];
+            int secondJob = machineSequences[machine][position + 1];
+
+            int from = operationVertex(firstJob, machine, inst.numMachines);
+            int to = operationVertex(secondJob, machine, inst.numMachines);
+            graph.addEdge(from, to);
+        }
+    }
+
+    for (int job = 0; job < inst.numJobs; ++job) {
+        graph.addEdge(source, operationVertex(job, 0, inst.numMachines));
+        graph.addEdge(operationVertex(job, inst.numMachines - 1, inst.numMachines), sink);
+    }
+
+    return graph;
 }
 
-FlowShopEvaluation FlowShopModeler::evaluateSequences(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences) {
-    Graph g = buildGraph(inst, machineSequences);
-    std::vector<int> topo = GraphAlgorithms::topologicalSort(g);
-    LongestPathResult res = GraphAlgorithms::calculateLongestPath(g, topo);
+FlowShopEvaluation FlowShopModeler::evaluateSequences(
+    const FlowShopInstance& inst,
+    const std::vector<std::vector<int>>& machineSequences
+) {
+    Graph graph = buildGraph(inst, machineSequences);
+    std::vector<int> topoOrder = GraphAlgorithms::topologicalSort(graph);
+    LongestPathResult longestPath = GraphAlgorithms::calculateLongestPath(graph, topoOrder);
 
     long long flowtime = 0;
-    for (int j = 0; j < inst.numJobs; ++j) {
-        int lastMachineNode = (j * inst.numMachines) + (inst.numMachines - 1);
-        flowtime += res.distances[lastMachineNode];
+    for (int job = 0; job < inst.numJobs; ++job) {
+        int lastOperation = operationVertex(job, inst.numMachines - 1, inst.numMachines);
+        flowtime += longestPath.distances[lastOperation];
     }
 
-    return {res.maxLength, flowtime, flowtime + res.maxLength, machineSequences};
+    FlowShopEvaluation evaluation;
+    evaluation.makespan = longestPath.maxLength;
+    evaluation.flowtime = flowtime;
+    evaluation.objective = flowtime + longestPath.maxLength;
+    evaluation.machineSequences = machineSequences;
+
+    return evaluation;
 }
 
-FlowShopEvaluation FlowShopModeler::improveByAdjacentSwaps(const FlowShopInstance& inst, const std::vector<std::vector<int>>& initialSequences) {
+FlowShopEvaluation FlowShopModeler::improveByAdjacentSwaps(
+    const FlowShopInstance& inst,
+    const std::vector<std::vector<int>>& initialSequences
+) {
     std::vector<std::vector<int>> currentSequences = initialSequences;
     FlowShopEvaluation best = evaluateSequences(inst, currentSequences);
 
-    bool improved = true;
-    int pass = 0;
-    while (improved && pass < MAX_LOCAL_SEARCH_PASSES) {
-        improved = false;
-        ++pass;
-
+    for (int pass = 0; pass < MAX_LOCAL_SEARCH_PASSES; ++pass) {
         for (int machine = 0; machine < inst.numMachines; ++machine) {
-            for (size_t i = 0; i + 1 < currentSequences[machine].size(); ++i) {
-                std::swap(currentSequences[machine][i], currentSequences[machine][i + 1]);
+            for (int position = 0; position + 1 < inst.numJobs; ++position) {
+                std::swap(currentSequences[machine][position], currentSequences[machine][position + 1]);
 
                 try {
                     FlowShopEvaluation candidate = evaluateSequences(inst, currentSequences);
+
                     if (candidate.objective < best.objective) {
                         best = candidate;
-                        improved = true;
                     } else {
-                        std::swap(currentSequences[machine][i], currentSequences[machine][i + 1]);
+                        std::swap(currentSequences[machine][position], currentSequences[machine][position + 1]);
                     }
                 } catch (const std::runtime_error&) {
-                    std::swap(currentSequences[machine][i], currentSequences[machine][i + 1]);
+                    // Se criou ciclo, a ordem testada nao e viavel.
+                    std::swap(currentSequences[machine][position], currentSequences[machine][position + 1]);
                 }
             }
         }

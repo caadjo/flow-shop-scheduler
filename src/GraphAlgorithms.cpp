@@ -1,73 +1,91 @@
 #include "GraphAlgorithms.hpp"
-#include <queue>
 #include <algorithm>
 #include <stdexcept>
 
 std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
     int n = g.getNumVertices();
-    std::vector<int> inDegree(n, 0);
-    const auto& vertices = g.getVertices();
+    const std::vector<Vertex>& vertices = g.getVertices();
 
-    for (int i = 0; i < n; ++i) {
-        for (int neighbor : vertices[i].adj) {
-            inDegree[neighbor]++;
+    std::vector<int> inDegree(n, 0);
+    for (int u = 0; u < n; ++u) {
+        for (int i = 0; i < static_cast<int>(vertices[u].adj.size()); ++i) {
+            int v = vertices[u].adj[i];
+            inDegree[v]++;
         }
     }
 
-    std::queue<int> q;
+    // Fila feita com vector para deixar o passo da caminhada bem explicito.
+    std::vector<int> queue;
     for (int i = 0; i < n; ++i) {
-        if (inDegree[i] == 0) q.push(i);
+        if (inDegree[i] == 0) {
+            queue.push_back(i);
+        }
     }
 
     std::vector<int> topoOrder;
-    while (!q.empty()) {
-        int u = q.front();
-        q.pop();
+    int first = 0;
+    while (first < static_cast<int>(queue.size())) {
+        int u = queue[first];
+        first++;
+
         topoOrder.push_back(u);
 
-        for (int v : vertices[u].adj) {
+        for (int i = 0; i < static_cast<int>(vertices[u].adj.size()); ++i) {
+            int v = vertices[u].adj[i];
             inDegree[v]--;
-            if (inDegree[v] == 0) q.push(v);
+            if (inDegree[v] == 0) {
+                queue.push_back(v);
+            }
         }
     }
 
-    if (topoOrder.size() != static_cast<size_t>(n)) {
+    if (static_cast<int>(topoOrder.size()) != n) {
         throw std::runtime_error("Erro: Grafo contem ciclo.");
     }
+
     return topoOrder;
 }
 
 LongestPathResult GraphAlgorithms::calculateLongestPath(const Graph& g, const std::vector<int>& topoOrder) {
     int n = g.getNumVertices();
-    std::vector<int> dist(n, 0);
+    const std::vector<Vertex>& vertices = g.getVertices();
+
+    std::vector<int> distance(n);
     std::vector<int> predecessor(n, -1);
-    const auto& vertices = g.getVertices();
 
-    for (int i = 0; i < n; ++i) dist[i] = vertices[i].weight;
+    for (int i = 0; i < n; ++i) {
+        distance[i] = vertices[i].weight;
+    }
 
-    for (int u : topoOrder) {
-        for (int v : vertices[u].adj) {
-            if (dist[u] + vertices[v].weight > dist[v]) {
-                dist[v] = dist[u] + vertices[v].weight;
+    // Caminho maximo em DAG: processa os vertices na ordem topologica.
+    for (int i = 0; i < static_cast<int>(topoOrder.size()); ++i) {
+        int u = topoOrder[i];
+
+        for (int j = 0; j < static_cast<int>(vertices[u].adj.size()); ++j) {
+            int v = vertices[u].adj[j];
+            int candidate = distance[u] + vertices[v].weight;
+
+            if (candidate > distance[v]) {
+                distance[v] = candidate;
                 predecessor[v] = u;
             }
         }
     }
 
-    int maxDist = -1;
-    int endNode = -1;
-    for (int i = 0; i < n; ++i) {
-        if (dist[i] > maxDist) {
-            maxDist = dist[i];
-            endNode = i;
+    int endVertex = 0;
+    for (int i = 1; i < n; ++i) {
+        if (distance[i] > distance[endVertex]) {
+            endVertex = i;
         }
     }
 
     std::vector<int> path;
-    for (int at = endNode; at != -1; at = predecessor[at]) {
-        path.push_back(at);
+    int current = endVertex;
+    while (current != -1) {
+        path.push_back(current);
+        current = predecessor[current];
     }
     std::reverse(path.begin(), path.end());
 
-    return {maxDist, path, dist, predecessor};
+    return {distance[endVertex], path, distance, predecessor};
 }

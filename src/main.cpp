@@ -113,34 +113,31 @@ Graph buildFixedGraphFromPdf(std::vector<int>& labels) {
     }
 
     const std::vector<std::pair<int, int>> edges = {
-        // linha 1
-        {0, 1},   // 4 -> 3
-        {0, 6},   // 4 -> 1
-        {1, 2},   // 3 -> 5
-        {2, 3},   // 5 -> 15
-        {3, 4},   // 15 -> 6
-        {3, 14},  // 15 -> 9
-        // linha 2
-        {5, 6},   // 10 -> 1
-        {5, 1},   // 10 -> 3
-        {6, 7},   // 1 -> 11
-        {6, 12},  // 1 -> 2
-        {7, 8},   // 11 -> 14
-        {7, 3},   // 11 -> 15
-        {8, 9},   // 14 -> 13
-        {8, 14},  // 14 -> 9
-        {9, 4},   // 13 -> 6
-
-        // linha 3
-        {10, 5},  // 7 -> 10
-        {10, 11}, // 7 -> 8
-        {11, 12}, // 8 -> 2
-        {11, 8},  // 8 -> 14
-        {12, 13}, // 2 -> 12
-        {13, 14}, // 12 -> 9
-        {13, 9}   // 12 -> 13
-    };
-
+    // linha 1
+    {0, 1},   // 4  -> 3
+    {1, 2},   // 3  -> 5
+    {2, 3},   // 5  -> 15
+    {3, 4},   // 15 -> 6
+    {3, 14},  // 15 -> 9
+    // linha 2
+    {5, 6},   // 10 -> 1
+    {5, 1},   // 10 -> 3
+    {6, 7},   // 1  -> 11
+    {6, 12},  // 1  -> 2
+    {7, 8},   // 11 -> 14
+    {7, 3},   // 11 -> 15
+    {8, 9},   // 14 -> 13
+    {8, 2},   // 14 -> 5 
+    {9, 4},   // 13 -> 6
+    // linha 3
+    {10, 5},  // 7  -> 10
+    {10, 11}, // 7  -> 8
+    {11, 12}, // 8  -> 2
+    {11, 8},  // 8  -> 14
+    {12, 13}, // 2  -> 12
+    {13, 14}, // 12 -> 9
+    {13, 9}   // 12 -> 13
+};
     for (const auto& edge : edges) {
         graph.addEdge(edge.first, edge.second);
     }
@@ -163,15 +160,15 @@ void runFixedGraphTest() {
     std::cout << "\n\n";
 
     std::cout << "• Caminho máximo de um elemento minimal para um elemento maximal\n";
-    std::cout << "Comprimento do caminho máximo: " << result.maxLength << "\n";
-    std::cout << "Qual é o caminho máximo: ";
+    std::cout << "Comprimento: " << result.maxLength << "\n";
+    std::cout << "Lista: ";
     printVertexLabels(result.path, labels);
     std::cout << "\n\n";
 
     std::cout << "• Caminho máximo de um elemento minimal para cada elemento no final de cada linha\n";
     for (int endVertex : lineEnds) {
         std::vector<int> path = reconstructPathTo(endVertex, result);
-        std::cout << "Final da linha (Nó " << labels[endVertex] << "):\n"
+        std::cout << "(Nó " << labels[endVertex] << "):\n"
                   << "  Comprimento: " << result.distances[endVertex] << "\n"
                   << "  Caminho: ";
         printVertexLabels(path, labels);

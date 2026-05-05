@@ -14,7 +14,7 @@ std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
         }
     }
 
-    // Fila feita com vector para deixar o passo da caminhada bem explicito.
+    // Fila feita com vector 
     std::vector<int> queue;
     for (int i = 0; i < n; ++i) {
         if (inDegree[i] == 0) {

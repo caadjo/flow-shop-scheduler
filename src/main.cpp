@@ -97,6 +97,10 @@ std::string resolveInstancePath(const std::string& instanceArg) {
 }
 
 Graph buildFixedGraphFromPdf(std::vector<int>& labels) {
+    // Index mapping from the image
+    // Line 1: 4(0), 3(1), 5(2), 15(3), 6(4)
+    // Line 2: 10(5), 1(6), 11(7), 14(8), 13(9)
+    // Line 3: 7(10), 8(11), 2(12), 12(13), 9(14)
     labels = {
         4, 3, 5, 15, 6,
         10, 1, 11, 14, 13,
@@ -123,8 +127,8 @@ Graph buildFixedGraphFromPdf(std::vector<int>& labels) {
         {6, 12},  // 1 -> 2
         {7, 8},   // 11 -> 14
         {7, 3},   // 11 -> 15
-        {8, 2},   // 14 -> 5
         {8, 9},   // 14 -> 13
+        {8, 14},  // 14 -> 9
         {9, 4},   // 13 -> 6
 
         // linha 3
@@ -152,26 +156,26 @@ void runFixedGraphTest() {
 
     const std::vector<int> lineEnds = {4, 9, 14};
 
-    std::cout << "Fixed graph from PDF\n";
-    std::cout << "Vertex labels are also the vertex weights.\n";
-    std::cout << "TopologicalOrder: ";
+    std::cout << "Seção 2: Grafo Fixo\n";
+    std::cout << "Modelagem: Dígrafo com pesos nos vértices.\n";
+    std::cout << "Ordem que os vértices são percorridos (Caminhada Topológica): ";
     printVertexLabels(topoOrder, labels);
     std::cout << "\n\n";
 
-    std::cout << "1. Caminho maximo de um elemento minimal para um elemento maximal\n";
-    std::cout << "Length: " << result.maxLength << "\n";
-    std::cout << "Path: ";
+    std::cout << "• Caminho máximo de um elemento minimal para um elemento maximal\n";
+    std::cout << "Comprimento do caminho máximo: " << result.maxLength << "\n";
+    std::cout << "Qual é o caminho máximo: ";
     printVertexLabels(result.path, labels);
     std::cout << "\n\n";
 
-    std::cout << "2. Caminho maximo de um elemento minimal para cada elemento no final de cada linha\n";
+    std::cout << "• Caminho máximo de um elemento minimal para cada elemento no final de cada linha\n";
     for (int endVertex : lineEnds) {
         std::vector<int> path = reconstructPathTo(endVertex, result);
-        std::cout << "End " << labels[endVertex]
-                  << " | Length: " << result.distances[endVertex]
-                  << " | Path: ";
+        std::cout << "Final da linha (Nó " << labels[endVertex] << "):\n"
+                  << "  Comprimento: " << result.distances[endVertex] << "\n"
+                  << "  Caminho: ";
         printVertexLabels(path, labels);
-        std::cout << '\n';
+        std::cout << "\n";
     }
 }
 
@@ -184,18 +188,19 @@ void printDetailedDagResult(const std::string& filepath) {
     std::vector<int> topoOrder = GraphAlgorithms::topologicalSort(graph);
     LongestPathResult longestPath = GraphAlgorithms::calculateLongestPath(graph, topoOrder);
 
-    std::cout << "Problem: Non-Permutation Flow Shop (FSP) with objective flowtime + makespan\n"
-              << "Instance: " << fs::path(filepath).filename().string() << '\n'
+    std::cout << "Seção 3: Problema Geral - Flow Shop (Non-Permutation)\n"
+              << "Objetivo: Minimização de Makespan e Flowtime\n"
+              << "Instância: " << fs::path(filepath).filename().string() << '\n'
               << "Jobs: " << inst.numJobs << " | Machines: " << inst.numMachines << '\n'
-              << "BestMachineSequences: ";
+              << "Melhor Sequência por Máquina: ";
     printMachineSequences(result.machineSequences);
-    std::cout << "\nMakespan: " << result.makespan
+    std::cout << "\n\nMakespan (Tempo de Término): " << result.makespan
               << "\nFlowtime: " << result.flowtime
-              << "\nObjective: " << result.objective
-              << "\nTopologicalOrder: ";
+              << "\nObjetivo (Makespan + Flowtime): " << result.objective
+              << "\n\nCaminhada Topológica (Ordem de percurso): ";
     printVectorOneBased(topoOrder);
-    std::cout << "\nLongestPathLength: " << longestPath.maxLength
-              << "\nLongestPath: ";
+    std::cout << "\n\nComprimento do Caminho Máximo: " << longestPath.maxLength
+              << "\nCaminho Máximo (Caminho Crítico): ";
     printVectorOneBased(longestPath.path);
     std::cout << '\n';
 }

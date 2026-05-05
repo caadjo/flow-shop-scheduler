@@ -97,10 +97,7 @@ std::string resolveInstancePath(const std::string& instanceArg) {
 }
 
 Graph buildFixedGraphFromPdf(std::vector<int>& labels) {
-    // Index mapping from the image
-    // Line 1: 4(0), 3(1), 5(2), 15(3), 6(4)
-    // Line 2: 10(5), 1(6), 11(7), 14(8), 13(9)
-    // Line 3: 7(10), 8(11), 2(12), 12(13), 9(14)
+
     labels = {
         4, 3, 5, 15, 6,
         10, 1, 11, 14, 13,
@@ -185,7 +182,7 @@ void printDetailedDagResult(const std::string& filepath) {
     std::vector<int> topoOrder = GraphAlgorithms::topologicalSort(graph);
     LongestPathResult longestPath = GraphAlgorithms::calculateLongestPath(graph, topoOrder);
 
-    std::cout << "Seção 3: Problema Geral - Flow Shop (Non-Permutation)\n"
+    std::cout << "Problema Geral - Flow Shop (Non-Permutation)\n"
               << "Objetivo: Minimização de Makespan e Flowtime\n"
               << "Instância: " << fs::path(filepath).filename().string() << '\n'
               << "Jobs: " << inst.numJobs << " | Machines: " << inst.numMachines << '\n'
@@ -194,10 +191,10 @@ void printDetailedDagResult(const std::string& filepath) {
     std::cout << "\n\nMakespan (Tempo de Término): " << result.makespan
               << "\nFlowtime: " << result.flowtime
               << "\nObjetivo (Makespan + Flowtime): " << result.objective
-              << "\n\nCaminhada Topológica (Ordem de percurso): ";
+              << "\n\nCaminhada Topológica: ";
     printVectorOneBased(topoOrder);
     std::cout << "\n\nComprimento do Caminho Máximo: " << longestPath.maxLength
-              << "\nCaminho Máximo (Caminho Crítico): ";
+              << "\nCaminho Máximoo Crítico: ";
     printVectorOneBased(longestPath.path);
     std::cout << '\n';
 }

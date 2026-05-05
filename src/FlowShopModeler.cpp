@@ -79,7 +79,7 @@ Graph FlowShopModeler::buildGraph(const FlowShopInstance& inst, const std::vecto
     graph.setVertexWeight(source, 0);
     graph.setVertexWeight(sink, 0);
 
-    // Restricao 1: cada job passa pelas maquinas na ordem 0, 1, 2, ...
+    // cada job passa pelas maquinas na ordem 0, 1, 2, ...
     for (int job = 0; job < inst.numJobs; ++job) {
         for (int machine = 0; machine + 1 < inst.numMachines; ++machine) {
             int from = operationVertex(job, machine, inst.numMachines);
@@ -88,7 +88,7 @@ Graph FlowShopModeler::buildGraph(const FlowShopInstance& inst, const std::vecto
         }
     }
 
-    // Restricao 2: em cada maquina existe uma ordem propria dos jobs.
+    // em cada maquina existe uma ordem propria dos jobs.
     for (int machine = 0; machine < inst.numMachines; ++machine) {
         for (int position = 0; position + 1 < inst.numJobs; ++position) {
             int firstJob = machineSequences[machine][position];

@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <vector>
 
-// Vertice de um digrafo com peso no proprio vertice.
 struct Vertex {
     int id;
     int weight;

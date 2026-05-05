@@ -1,35 +1,47 @@
-# Resultados do Escalonamento Flow Shop
+# Resultados Computacionais: Otimização de Permutation Flow Shop
 
-Este documento apresenta os resultados obtidos pelo algoritmo implementado em comparação com heurísticas clássicas da literatura e os valores ótimos de Taillard.
+Este documento consolida os resultados dos experimentos computacionais realizados com a engine de otimização em C++ sobre o benchmark de Taillard (1993). A implementação resolve o *Permutation Flow Shop Problem* (PFSP) através de modelagem em Grafos Direcionados Acíclicos (DAGs) e extração de Caminho Crítico.
 
-## 1. Comparação de Heurísticas (Média RPD)
+A métrica de qualidade adotada é o **Desvio Percentual Relativo (RPD)**, que mensura a distância do Makespan ($C_{max}$) encontrado em relação ao melhor limitante superior (ou solução ótima provada) conhecido na literatura, calculado através da fórmula:
 
-A tabela abaixo apresenta o **Relative Percent Deviation (RPD)** médio para cada grupo de problemas. O RPD é calculado em relação ao ótimo (ou melhor limitante inferior conhecido) de Taillard.
-
-| Tamanho do Problema | Seu Algoritmo | FCFS | NEH | CDS | Palmer |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| 20 × 5 | 25.03% | 24.98% | 3.35% | 9.54% | 10.58% |
-| 20 × 10 | 28.77% | 28.77% | 5.02% | 12.13% | 15.28% |
-| 20 × 20 | 21.43% | 21.43% | 3.73% | 9.64% | 16.34% |
-| 50 × 5 | 15.44% | 15.32% | 0.84% | 6.10% | 5.34% |
-| 50 × 10 | 25.05% | 25.05% | 5.12% | 12.98% | 14.01% |
-| 50 × 20 | 29.73% | 29.59% | 6.20% | 13.85% | 15.99% |
-| 100 × 5 | 13.64% | 13.63% | 0.46% | 5.01% | 2.38% |
-| 100 × 10 | 21.26% | 20.92% | 2.13% | 9.15% | 9.20% |
-| 100 × 20 | 25.74% | 25.36% | 5.11% | 13.12% | 14.41% |
-| 200 × 10 | 15.67% | 15.67% | 1.43% | 7.38% | 5.13% |
-| 200 × 20 | 22.28% | 22.10% | 4.37% | 12.08% | 13.17% |
-| 500 × 20 | 15.96% | 15.99% | 2.24% | 8.55% | 7.09% |
-| **Média Geral** | **21.67%** | **21.57%** | **3.33%** | **9.96%** | **10.74%** |
+$$RPD = \frac{C_{max} - Opt_{sol}}{Opt_{sol}} \times 100$$
 
 ---
 
-## 2. Resultados Detalhados por Instância
+## 1. Benchmarking: Comparativo com o Estado da Arte
 
-Abaixo estão os resultados detalhados para cada uma das 120 instâncias de Taillard testadas.
+A Tabela 1 apresenta a média do RPD agrupada pelas dimensões das instâncias (Jobs $\times$ Máquinas). O desempenho do algoritmo implementado neste repositório é contrastado diretamente com as heurísticas construtivas clássicas avaliadas por Ruiz e Maroto (2005) em sua extensa revisão da literatura.
 
-| Instância | Grupo | Seu Makespan | Ótimo (Taillard) | Erro Relativo (RPD) |
-|:---:|:---:|:---:|:---:|:---:|
+> **Nota Metodológica:** Os resultados registrados na tabela abaixo refletem o *baseline* estrutural do algoritmo na avaliação da sequência natural inicial. O comportamento mimetiza matematicamente a avaliação FCFS (*First Come, First Served*).
+
+**Tabela 1: RPD Médio por Grupo de Instâncias vs. Algoritmos Clássicos**
+
+| Categoria | FS-Graph-Solver (Baseline) | FCFS | NEH | CDS | Palmer |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **20 $\times$ 5** | 25.03% | 24.98% | 3.35% | 9.54% | 10.58% |
+| **20 $\times$ 10** | 28.77% | 28.77% | 5.02% | 12.13% | 15.28% |
+| **20 $\times$ 20** | 21.43% | 21.43% | 3.73% | 9.64% | 16.34% |
+| **50 $\times$ 5** | 15.44% | 15.32% | 0.84% | 6.10% | 5.34% |
+| **50 $\times$ 10** | 25.05% | 25.05% | 5.12% | 12.98% | 14.01% |
+| **50 $\times$ 20** | 29.73% | 29.59% | 6.20% | 13.85% | 15.99% |
+| **100 $\times$ 5** | 13.64% | 13.63% | 0.46% | 5.01% | 2.38% |
+| **100 $\times$ 10** | 21.26% | 20.92% | 2.13% | 9.15% | 9.20% |
+| **100 $\times$ 20** | 25.74% | 25.36% | 5.11% | 13.12% | 14.41% |
+| **200 $\times$ 10** | 15.67% | 15.67% | 1.43% | 7.38% | 5.13% |
+| **200 $\times$ 20** | 22.28% | 22.10% | 4.37% | 12.08% | 13.17% |
+| **500 $\times$ 20** | 15.96% | 15.99% | 2.24% | 8.55% | 7.09% |
+| **Média Global** | **21.67%** | **21.57%** | **3.33%** | **9.96%** | **10.74%** |
+
+---
+
+## 2. Resultados Brutos e Detalhados
+
+A Tabela 2 descreve os valores isolados extraídos do log de processamento em C++ para as 120 instâncias da *OR-Library*, garantindo a total transparência e reprodutibilidade dos testes.
+
+**Tabela 2: Log de Execução (Instâncias de Taillard)**
+
+| Instância | Dimensão | Makespan Obtido ($C_{max}$) | Referência Ótima (BKS) | Desvio (RPD) |
+|:---|:---:|:---:|:---:|:---:|
 | ta001 | 20x5 | 1455 | 1278 | 13.85% |
 | ta002 | 20x5 | 1545 | 1359 | 13.69% |
 | ta003 | 20x5 | 1597 | 1081 | 47.73% |
@@ -39,7 +51,7 @@ Abaixo estão os resultados detalhados para cada uma das 120 instâncias de Tail
 | ta007 | 20x5 | 1528 | 1234 | 23.82% |
 | ta008 | 20x5 | 1428 | 1206 | 18.41% |
 | ta009 | 20x5 | 1468 | 1230 | 19.35% |
-| ta10 | 20x5 | 1404 | 1108 | 26.71% |
+| ta010 | 20x5 | 1404 | 1108 | 26.71% |
 | ta011 | 20x10 | 2004 | 1582 | 26.68% |
 | ta012 | 20x10 | 2104 | 1659 | 26.82% |
 | ta013 | 20x10 | 1812 | 1496 | 21.12% |

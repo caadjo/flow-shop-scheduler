@@ -16,7 +16,7 @@ A Tabela 1 apresenta a média do RPD agrupada pelas dimensões das instâncias (
 
 **Tabela 1: RPD Médio por Grupo de Instâncias vs. Algoritmos Clássicos**
 
-| Categoria | FS-Graph-Solver (Baseline) | FCFS | NEH | CDS | Palmer |
+| Categoria | Makespan + Flowtime | FCFS | NEH | CDS | Palmer |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | **20 $\times$ 5** | 25.03% | 24.98% | 3.35% | 9.54% | 10.58% |
 | **20 $\times$ 10** | 28.77% | 28.77% | 5.02% | 12.13% | 15.28% |

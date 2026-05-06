@@ -11,11 +11,11 @@ namespace fs = std::filesystem;
 
 void printUsage(const char* programName) {
     std::cout << "Usage:\n"
-              << "  " << programName << "                    # run all instances in data/instances\n"
-              << "  " << programName << " ta001              # run one instance by name\n"
-              << "  " << programName << " path/to/file       # run one instance by path\n"
-              << "  " << programName << " --details ta001    # show DAG traversal and longest path\n"
-              << "  " << programName << " --fixed-graph      # run the fixed graph from the PDF\n";
+              << "  " << programName << "                    # executar todas instâncias\n"
+              << "  " << programName << " ta001              # executar uma instância pelo nome\n"
+              << "  " << programName << " path/to/file       # executar uma instância pelo caminho\n"
+              << "  " << programName << " --details ta001    # mostrar percurso do DAG e caminho mais longo\n"
+              << "  " << programName << " --fixed-graph      # executar o grafo fixo do PDF\n";
 }
 
 void printSequence(const std::vector<int>& sequence) {
@@ -156,13 +156,13 @@ void runFixedGraphTest() {
     printVertexLabels(topoOrder, labels);
     std::cout << "\n\n";
 
-    std::cout << "• Caminho máximo de um elemento minimal para um elemento maximal\n";
+    std::cout << "Caminho máximo de um elemento minimal para um elemento maximal\n";
     std::cout << "Comprimento: " << result.maxLength << "\n";
     std::cout << "Lista: ";
     printVertexLabels(result.path, labels);
     std::cout << "\n\n";
 
-    std::cout << "• Caminho máximo de um elemento minimal para cada elemento no final de cada linha\n";
+    std::cout << "Caminho máximo de um elemento minimal para cada elemento no final de cada linha\n";
     for (int endVertex : lineEnds) {
         std::vector<int> path = reconstructPathTo(endVertex, result);
         std::cout << "(Nó " << labels[endVertex] << "):\n"
@@ -228,7 +228,7 @@ void runFlowShopInstances() {
         try {
             runFlowShopInstance(filepath, false);
         } catch (const std::exception& e) {
-            std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
+            std::cerr << "Erro ao carregar " << filepath << ": " << e.what() << '\n';
         }
     }
 }
@@ -248,7 +248,7 @@ int main(int argc, char* argv[]) {
 
         std::string filepath = resolveInstancePath(argv[2]);
         if (filepath.empty()) {
-            std::cerr << "Instance not found: " << argv[2] << '\n';
+            std::cerr << "Instância não encontrada: " << argv[2] << '\n';
             printUsage(argv[0]);
             return 1;
         }
@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
         try {
             printDetailedDagResult(filepath);
         } catch (const std::exception& e) {
-            std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
+            std::cerr << "Erro ao processar " << filepath << ": " << e.what() << '\n';
             return 1;
         }
         return 0;
@@ -273,7 +273,7 @@ int main(int argc, char* argv[]) {
             try {
                 runFixedGraphTest();
             } catch (const std::exception& e) {
-                std::cerr << "Error processing fixed graph: " << e.what() << '\n';
+                std::cerr << "Erro ao processar grafo fixo: " << e.what() << '\n';
                 return 1;
             }
             return 0;
@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
 
         std::string filepath = resolveInstancePath(arg);
         if (filepath.empty()) {
-            std::cerr << "Instance not found: " << arg << '\n';
+            std::cerr << "Instância não encontrada: " << arg << '\n';
             printUsage(argv[0]);
             return 1;
         }
@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
         try {
             runFlowShopInstance(filepath, true);
         } catch (const std::exception& e) {
-            std::cerr << "Error processing " << filepath << ": " << e.what() << '\n';
+            std::cerr << "Erro ao processar " << filepath << ": " << e.what() << '\n';
             return 1;
         }
         return 0;

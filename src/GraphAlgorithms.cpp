@@ -14,7 +14,6 @@ std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
         }
     }
 
-    // Fila feita com vector 
     std::vector<int> queue;
     for (int i = 0; i < n; ++i) {
         if (inDegree[i] == 0) {
@@ -40,7 +39,7 @@ std::vector<int> GraphAlgorithms::topologicalSort(const Graph& g) {
     }
 
     if (static_cast<int>(topoOrder.size()) != n) {
-        throw std::runtime_error("Erro: Grafo contem ciclo.");
+        throw std::runtime_error("Erro: Grafo tem ciclo.");
     }
 
     return topoOrder;
@@ -57,7 +56,7 @@ LongestPathResult GraphAlgorithms::calculateLongestPath(const Graph& g, const st
         distance[i] = vertices[i].weight;
     }
 
-    // Caminho maximo em DAG: processa os vertices na ordem topologica.
+    // caminho máximo, processa os vertices na ordem topologica
     for (int i = 0; i < static_cast<int>(topoOrder.size()); ++i) {
         int u = topoOrder[i];
 

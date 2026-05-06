@@ -13,7 +13,7 @@ int operationVertex(int job, int machine, int numberOfMachines) {
 
 void validateOneMachineSequence(const FlowShopInstance& inst, const std::vector<int>& sequence) {
     if (static_cast<int>(sequence.size()) != inst.numJobs) {
-        throw std::invalid_argument("Cada maquina deve ter todos os jobs.");
+        throw std::invalid_argument("Cada máquina deve ter todos os jobs.");
     }
 
     std::vector<int> count(inst.numJobs, 0);
@@ -21,21 +21,21 @@ void validateOneMachineSequence(const FlowShopInstance& inst, const std::vector<
     for (int i = 0; i < static_cast<int>(sequence.size()); ++i) {
         int job = sequence[i];
         if (job < 0 || job >= inst.numJobs) {
-            throw std::invalid_argument("Sequencia de maquina tem job fora do intervalo.");
+            throw std::invalid_argument("Sequência de máquina tem job fora do intervalo.");
         }
         count[job]++;
     }
 
     for (int job = 0; job < inst.numJobs; ++job) {
         if (count[job] != 1) {
-            throw std::invalid_argument("Sequencia de maquina nao e uma permutacao valida.");
+            throw std::invalid_argument("Sequência de máquina não é uma permutação válida.");
         }
     }
 }
 
 void validateMachineSequences(const FlowShopInstance& inst, const std::vector<std::vector<int>>& machineSequences) {
     if (static_cast<int>(machineSequences.size()) != inst.numMachines) {
-        throw std::invalid_argument("Deve existir uma sequencia para cada maquina.");
+        throw std::invalid_argument("Deve existir uma sequência para cada máquina.");
     }
 
     for (int machine = 0; machine < inst.numMachines; ++machine) {
@@ -152,7 +152,7 @@ FlowShopEvaluation FlowShopModeler::improveByAdjacentSwaps(
                         std::swap(currentSequences[machine][position], currentSequences[machine][position + 1]);
                     }
                 } catch (const std::runtime_error&) {
-                    // Se criou ciclo, a ordem testada nao e viavel.
+                    // se criou ciclo, a ordem testada nao é viável.
                     std::swap(currentSequences[machine][position], currentSequences[machine][position + 1]);
                 }
             }

@@ -14,7 +14,7 @@ FlowShopInstance InstanceParser::parse(const std::string& filepath) {
         for (int m = 0; m < inst.numMachines; ++m) {
             int machineId, time;
             file >> machineId >> time;
-            inst.processingTimes[j][machineId] = time; // Armazena o tempo na matriz
+            inst.processingTimes[j][machineId] = time; // salva o tempo na matriz
         }
     }
     return inst;

@@ -114,6 +114,6 @@ Used to verify the DAG implementation against the known results from the course 
 
 ## Academic Context
 
-Developed as a final project for the **Graph Algorithms** course at **IFNMG - Campus Montes Claros**.
+Developed as a project for the **Graph Algorithms** course at **IFNMG - Campus Montes Claros**.
 
 **Objective:** Demonstrate the application of Directed Acyclic Graphs, Topological Sorting, and Critical Path algorithms in industrial optimization problems.

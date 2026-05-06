@@ -1,138 +1,119 @@
 # Non-Permutation Flow Shop Scheduler
 
-Trabalho educacional da disciplina de Algoritmos em Grafos. O objetivo do projeto e avaliar e melhorar sequencias para o problema Flow Shop nao permutacional (FSP), usando a funcao objetivo:
+![C++](https://img.shields.io/badge/language-C%2B%2B-blue)
+![Status](https://img.shields.io/badge/status-Academic%20Project-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+An educational project for the **Graph Algorithms** course. This application evaluates and optimizes job sequences for the **Non-Permutation Flow Shop Scheduling Problem (FSP)** by minimizing a combined objective function:
 
 ```text
-objetivo = flowtime + makespan
+Objective = Flowtime + Makespan
 ```
 
-No FSP nao permutacional cada maquina pode ter sua propria permutacao dos jobs. Por isso, uma solucao do programa e um conjunto de sequencias: uma sequencia sem repeticao para cada maquina da instancia.
+In a Non-Permutation FSP, each machine can have its own unique processing sequence. Therefore, a solution consists of a set of sequences (one per machine) that minimizes the total completion time and the sum of completion times.
 
-## Ideia Do Modelo
+## Algorithm & Modeling
 
-Cada operacao de um job em uma maquina vira um vertice do grafo, com peso igual ao tempo de processamento daquela operacao. O grafo e direcionado e aciclico (DAG).
+The problem is modeled as a **Weighted Directed Acyclic Graph (DAG)**, where:
+- **Vertices:** Each operation (job $i$ on machine $j$) is a vertex with a weight equal to its processing time.
+- **Edges:** Represent precedence constraints:
+    - **Job Constraints:** Operation $(i, j)$ must finish before $(i, j+1)$ starts.
+    - **Machine Constraints:** Job sequence on each specific machine.
 
-As arestas representam duas dependencias:
+### Processing Pipeline
+1. **DAG Construction:** Build the graph based on the provided machine sequences.
+2. **Topological Sort:** Determine a valid linear ordering of operations in $O(V + E)$ time.
+3. **Critical Path (Longest Path):** Calculate the maximum distance from the source to each vertex to obtain completion times.
+4. **Objective Evaluation:** Compute the Makespan (max completion time) and Flowtime (sum of job completion times).
 
-- Dentro de um mesmo job, a operacao na maquina seguinte so pode iniciar depois da maquina anterior.
-- Em uma mesma maquina, os jobs seguem a ordem definida pela permutacao especifica daquela maquina.
+The complexity of the evaluation is **linear**, $O(V + E)$, relative to the size of the graph.
 
-Depois que o DAG e montado, o programa calcula uma ordenacao topologica e usa caminho maximo no DAG para obter os tempos de conclusao. O makespan e o maior tempo de conclusao; o flowtime e a soma dos tempos de conclusao dos jobs.
+## Heuristics
 
-Essa abordagem se relaciona diretamente com os topicos de DAG, ordenacao topologica e caminhos em DAG apresentados na apostila da disciplina.
+The project implements and compares several heuristics on the **Taillard Benchmark**:
 
-## Heuristica
+- **Makespan + Flowtime:** Custom implementation using a First-Improvement local search with adjacent swaps.
+- **NEH (Nawaz-Enscore-Ham):** Constructive heuristic for makespan minimization.
+- **CDS (Campbell-Dudek-Smith):** Multi-stage extension of Johnson's algorithm.
+- **Palmer's Slope Index:** Priority-based heuristic using processing time trends.
+- **FCFS (First-Come, First-Served):** Baseline using the natural sequence of jobs.
 
-A solucao implementada e uma heuristica, nao um algoritmo exato. Ela nao garante otimo global.
+## Results
 
-O metodo atual parte da sequencia natural em todas as maquinas:
+Performance is measured using the **Relative Percentage Deviation (RPD)**:
+$$RPD = \frac{f(\pi) - f^*}{f^*} \times 100$$
+*Where $f^*$ is the best-known value for the instance.*
+
+### Global Average RPD (Taillard Benchmark)
+
+| Heuristic | Global Average RPD (%) |
+| :--- | :---: |
+| **NEH** | **3.33%** |
+| CDS | 9.96% |
+| Palmer | 10.74% |
+| FCFS | 21.57% |
+| Makespan + Flowtime | 21.67% |
+
+*Note: The "Makespan + Flowtime" algorithm occasionally accepts slight increases in Makespan to significantly reduce Flowtime, adhering to the multi-objective nature of the implemented function.*
+
+## Project Structure
 
 ```text
-M1: 1, 2, 3, ..., n
-M2: 1, 2, 3, ..., n
-...
-Mm: 1, 2, 3, ..., n
+.
+├── build/              # Compiled binaries and object files
+├── data/
+│   └── instances/      # Taillard benchmark instances (ta001 - ta120)
+├── include/            # Header files (.hpp)
+├── src/                # Implementation files (.cpp)
+├── scripts/            # Support scripts for analysis
+└── README.md           # Project documentation
 ```
 
-Em seguida aplica uma busca local por trocas adjacentes em cada maquina. A cada passo, o programa troca dois jobs vizinhos em uma maquina, reavalia o DAG e aceita a troca apenas se:
+## Getting Started
 
-- o grafo continuar aciclico;
-- houver melhora estrita em:
+### Prerequisites
+- GCC/Clang with C++17 support
+- Make
 
-```text
-flowtime + makespan
-```
-
-Para manter o tempo de execucao controlado, a busca faz uma passada pelas sequencias.
-
-## Como Compilar
-
+### Compilation
 ```bash
 make
 ```
-
-Para limpar os arquivos gerados:
-
+To clean build files:
 ```bash
 make clean
 ```
 
-## Como Executar
+### Execution
 
-Rodar todas as instancias em `data/instances`:
-
+**Run all instances:**
 ```bash
 ./build/bin/flowshop
 ```
 
-Rodar uma instancia pelo nome:
-
+**Run a specific instance by name:**
 ```bash
 ./build/bin/flowshop ta001
 ```
 
-Rodar uma instancia pelo caminho:
-
-```bash
-./build/bin/flowshop data/instances/ta001
-```
-
-Mostrar a caminhada topologica e o caminho maximo usados para uma instancia:
-
+**Show DAG details (Topological Order & Critical Path):**
 ```bash
 ./build/bin/flowshop --details ta001
 ```
 
-Rodar o teste do grafo fixo de 15 vertices do PDF:
-
+**Run the Fixed 15-Vertex Graph Test:**
+Used to verify the DAG implementation against the known results from the course material.
 ```bash
 ./build/bin/flowshop --fixed-graph
 ```
+*Fixed Graph Results:*
+- Max Path (Minimal to Maximal): 7 → 10 → 1 → 11 → 14 → 5 → 15 → 9 (Weight: 72)
+- Node 6 Max Dist: 69
+- Node 13 Max Dist: 56
+- Node 9 Max Dist: 72
 
-Mostrar ajuda:
+## Academic Context
 
-```bash
-./build/bin/flowshop --help
-```
+Developed as a final project for the **Graph Algorithms** course at **IFNMG - Campus Montes Claros**.
 
-## Saida
-
-Cada linha mostra a comparacao entre as sequencias naturais e as sequencias melhoradas:
-
-```text
-Instance: ta001 | InitialObjective: 19734 | FinalObjective: 19544 | Improvement: 190 | Makespan: 1455 | Flowtime: 18089
-```
-
-Campos:
-
-- `InitialObjective`: valor de `flowtime + makespan` para a sequencia natural.
-- `FinalObjective`: valor apos a busca local.
-- `Improvement`: reducao obtida pela heuristica.
-- `Makespan`: makespan final.
-- `Flowtime`: flowtime final.
-
-Ao rodar uma unica instancia, a saida tambem inclui:
-
-- `MachineSequences`: sequencias finais dos jobs em cada maquina, impressas com indices iniciando em 1.
-
-No modo `--details`, o programa tambem imprime:
-
-- `TopologicalOrder`: ordem em que os vertices do DAG sao percorridos.
-- `LongestPathLength`: comprimento do caminho maximo.
-- `LongestPath`: caminho maximo encontrado no DAG.
-
-No modo `--fixed-graph`, o programa constroi o grafo fixo do enunciado, executa a ordenacao topologica e responde:
-
-- caminho maximo de um elemento minimal para um elemento maximal;
-- caminho maximo de um elemento minimal para cada elemento no final de cada linha.
-
-## Limitacoes
-
-Esta implementacao prioriza clareza e relacao com a disciplina. Ela remonta e reavalia o DAG a cada troca testada, o que e simples de entender, mas nao e a forma mais eficiente possivel. Como diferentes maquinas podem ter ordens diferentes, algumas trocas podem criar ciclos no grafo; nesses casos a troca e descartada.
-
-Melhorias futuras possiveis:
-
-- Testar trocas nao adjacentes.
-- Implementar uma heuristica construtiva, como insercao gulosa.
-- Comparar diferentes heuristicas em uma tabela de resultados.
-- Salvar resultados em CSV para facilitar a analise.
+**Objective:** Demonstrate the application of Directed Acyclic Graphs, Topological Sorting, and Critical Path algorithms in industrial optimization problems.

@@ -1,13 +1,20 @@
 #include <algorithm>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <dirent.h>
+#include <cstdio>
 #include "FlowShopModeler.hpp"
 #include "GraphAlgorithms.hpp"
 #include "InstanceParser.hpp"
 
-namespace fs = std::filesystem;
+std::string getFilename(const std::string& path) {
+    size_t pos = path.find_last_of("/\\");
+    if (pos != std::string::npos) {
+        return path.substr(pos + 1);
+    }
+    return path;
+}
 
 void printUsage(const char* programName) {
     std::cout << "Usage:\n"
@@ -67,29 +74,34 @@ std::vector<int> reconstructPathTo(int endVertex, const LongestPathResult& resul
 
 std::vector<std::string> listInstanceFiles(const std::string& folder) {
     std::vector<std::string> files;
-
-    if (!fs::exists(folder) || !fs::is_directory(folder)) {
+    DIR* dir = opendir(folder.c_str());
+    if (dir == nullptr) {
         std::cerr << "Directory not found: " << folder << '\n';
         return files;
     }
-
-    for (const auto& entry : fs::directory_iterator(folder)) {
-        if (entry.is_regular_file()) {
-            files.push_back(entry.path().string());
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+        if (filename != "." && filename != "..") {
+            files.push_back(folder + "/" + filename);
         }
     }
-
+    closedir(dir);
     std::sort(files.begin(), files.end());
     return files;
 }
 
 std::string resolveInstancePath(const std::string& instanceArg) {
-    if (fs::exists(instanceArg)) {
+    FILE* file = fopen(instanceArg.c_str(), "r");
+    if (file) {
+        fclose(file);
         return instanceArg;
     }
 
     std::string instancePath = "data/instances/" + instanceArg;
-    if (fs::exists(instancePath)) {
+    file = fopen(instancePath.c_str(), "r");
+    if (file) {
+        fclose(file);
         return instancePath;
     }
 
@@ -184,7 +196,7 @@ void printDetailedDagResult(const std::string& filepath) {
 
     std::cout << "Problema Geral - Flow Shop (Non-Permutation)\n"
               << "Objetivo: Minimização de Makespan e Flowtime\n"
-              << "Instância: " << fs::path(filepath).filename().string() << '\n'
+              << "Instância: " << getFilename(filepath) << '\n'
               << "Jobs: " << inst.numJobs << " | Machines: " << inst.numMachines << '\n'
               << "Melhor Sequência por Máquina: ";
     printMachineSequences(result.machineSequences);
@@ -207,7 +219,7 @@ void runFlowShopInstance(const std::string& filepath, bool printSequences) {
     FlowShopEvaluation result = FlowShopModeler::improveByAdjacentSwaps(inst, naturalSequences);
     long long improvement = initial.objective - result.objective;
 
-    std::cout << "Instance: " << fs::path(filepath).filename().string()
+    std::cout << "Instance: " << getFilename(filepath)
               << " | InitialObjective: " << initial.objective
               << " | FinalObjective: " << result.objective
               << " | Improvement: " << improvement
